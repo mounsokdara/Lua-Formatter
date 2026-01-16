@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent } from '@/components/ui/card';
-import { Copy, Download, Trash2, Wand2, Sparkles, FileCode } from 'lucide-react';
+import { ArrowLeftRight, Copy, Download, Trash2, Wand2, Sparkles } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import {
   AlertDialog,
@@ -102,6 +102,17 @@ export function LuaEditor() {
     }
   };
 
+  const handleReverse = () => {
+    try {
+      const result = lua.reverseCode(inputCode);
+      setOutputCode(result);
+      toast({ title: 'Code reversed!', description: 'The input code has been reversed.' });
+    } catch (e) {
+      const error = e instanceof Error ? e.message : 'An unknown error occurred';
+      toast({ title: 'An error occurred', description: error, variant: 'destructive' });
+    }
+  };
+
   return (
     <>
       <Card className="w-full shadow-lg">
@@ -137,6 +148,9 @@ export function LuaEditor() {
             </Button>
             <Button variant="outline" onClick={handleToOneLiner}>
               <Sparkles className="mr-2 h-4 w-4" /> To One Liner
+            </Button>
+            <Button variant="outline" onClick={handleReverse}>
+              <ArrowLeftRight className="mr-2 h-4 w-4" /> Reverse
             </Button>
             <Button variant="secondary" onClick={handleCopy}>
               <Copy className="mr-2 h-4 w-4" /> Copy

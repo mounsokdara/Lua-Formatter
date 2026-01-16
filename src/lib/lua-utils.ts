@@ -86,3 +86,12 @@ export function beautifyCode(code: string, commentOption: 'delete' | 'preserve')
 
   return formattedLines.join('\n');
 }
+
+/**
+ * Reverses the input string.
+ * @param code The input string.
+ * @returns The reversed string.
+ */
+export function reverseCode(code: string): string {
+  return code.split('').reverse().join('');
+}
