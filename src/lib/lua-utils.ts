@@ -32,62 +32,6 @@ export function toOneLiner(code: string): string {
 }
 
 /**
- * A basic Lua code beautifier.
- * NOTE: This is a simple formatter based on keywords and may not handle all complex Lua syntax correctly.
- * @param code The input Lua code.
- * @param commentOption How to handle comments: 'delete' or 'preserve'.
- * @returns Formatted code string.
- */
-export function beautifyCode(code: string, commentOption: 'delete' | 'preserve'): string {
-  let currentCode = code;
-  if (commentOption === 'delete') {
-    currentCode = deleteAllComments(code);
-  }
-
-  const lines = currentCode.split('\n');
-  let indentLevel = 0;
-  const indentUnit = '  ';
-  const formattedLines: string[] = [];
-
-  const increaseKeywords = ['function', 'if', 'for', 'while', 'repeat'];
-  const decreaseKeywords = ['end', 'until'];
-  const middleKeywords = ['else', 'elseif'];
-
-  for (const line of lines) {
-    const trimmedLine = line.trim();
-
-    // Don't process empty lines
-    if (trimmedLine === '') {
-        formattedLines.push('');
-        continue;
-    }
-
-    const startsWithDecrease = decreaseKeywords.some(kw => trimmedLine.startsWith(kw));
-    const startsWithMiddle = middleKeywords.some(kw => trimmedLine.startsWith(kw));
-    
-    if (startsWithDecrease || startsWithMiddle) {
-        indentLevel = Math.max(0, indentLevel - 1);
-    }
-
-    formattedLines.push(indentUnit.repeat(indentLevel) + trimmedLine);
-    
-    const hasIncreaseKeyword = increaseKeywords.some(kw => trimmedLine.startsWith(kw));
-    const endsWithDoOrThen = trimmedLine.endsWith('do') || trimmedLine.endsWith('then');
-    const isOneLiner = decreaseKeywords.some(kw => trimmedLine.includes(kw));
-
-    if ((hasIncreaseKeyword || endsWithDoOrThen) && !isOneLiner) {
-        indentLevel++;
-    }
-    
-    if (startsWithMiddle) {
-        indentLevel++;
-    }
-  }
-
-  return formattedLines.join('\n');
-}
-
-/**
  * Reverses the input string.
  * @param code The input string.
  * @returns The reversed string.

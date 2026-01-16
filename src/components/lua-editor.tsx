@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent } from '@/components/ui/card';
-import { ArrowLeftRight, Copy, Download, Trash2, Wand2, Sparkles } from 'lucide-react';
+import { ArrowLeftRight, Copy, Download, Trash2, Bot, Sparkles } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import {
   AlertDialog,
@@ -17,6 +17,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import * as lua from '@/lib/lua-utils';
+import { luaBeautify } from '@/ai/flows/lua-beautify-flow';
 
 const initialCode = `-- Example Lua Code
 -- A simple function to greet a user
@@ -41,6 +42,7 @@ export function LuaEditor() {
   const [inputCode, setInputCode] = useState<string>(initialCode);
   const [outputCode, setOutputCode] = useState<string>('');
   const [dialogOpen, setDialogOpen] = useState<boolean>(false);
+  const [isProcessing, setIsProcessing] = useState<boolean>(false);
   const { toast } = useToast();
 
   const handleCopy = () => {
@@ -69,14 +71,25 @@ export function LuaEditor() {
     toast({ title: 'Download started!', description: 'Your .lua file is being downloaded.' });
   };
 
-  const handleBeautify = (commentOption: 'delete' | 'preserve') => {
+  const handleBeautify = async (commentOption: 'delete' | 'preserve') => {
+    setIsProcessing(true);
     try {
-      const result = lua.beautifyCode(inputCode, commentOption);
-      setOutputCode(result);
-      toast({ title: 'Code beautified!', description: 'Comments were handled as per your choice.' });
+      const result = await luaBeautify({
+        code: inputCode,
+        deleteComments: commentOption === 'delete',
+      });
+
+      if (result.correctedCode) {
+        setOutputCode(result.correctedCode);
+        toast({ title: 'Code beautified with AI!', description: 'Your code has been reformatted and corrected.' });
+      } else {
+        throw new Error('AI did not return any code.');
+      }
     } catch (e) {
-      const error = e instanceof Error ? e.message : 'An unknown error occurred';
+      const error = e instanceof Error ? e.message : 'An unknown AI error occurred';
       toast({ title: 'An error occurred', description: error, variant: 'destructive' });
+    } finally {
+      setIsProcessing(false);
     }
   };
 
@@ -126,36 +139,37 @@ export function LuaEditor() {
                 onChange={(e) => setInputCode(e.target.value)}
                 placeholder="Paste your Lua code here..."
                 className="font-code h-96 min-h-[300px] lg:h-[500px] text-base border-primary/20 focus:border-primary"
+                disabled={isProcessing}
               />
             </div>
             <div>
               <label htmlFor="output-code" className="text-sm font-medium mb-2 block text-muted-foreground">Output Code</label>
               <Textarea
                 id="output-code"
-                value={outputCode}
+                value={isProcessing ? 'AI is thinking...' : outputCode}
                 readOnly
-                placeholder="Processed code will appear here..."
+                placeholder={isProcessing ? 'AI is thinking...' : 'Processed code will appear here...'}
                 className="font-code h-96 min-h-[300px] lg:h-[500px] bg-muted/30 text-base"
               />
             </div>
           </div>
           <div className="mt-6 flex flex-wrap gap-3 justify-center">
-            <Button onClick={() => setDialogOpen(true)} className="bg-accent hover:bg-accent/90">
-              <Wand2 className="mr-2 h-4 w-4" /> Beautify Code
+            <Button onClick={() => setDialogOpen(true)} className="bg-accent hover:bg-accent/90" disabled={isProcessing}>
+              <Bot className="mr-2 h-4 w-4" /> Beautify with AI
             </Button>
-            <Button variant="outline" onClick={handleDeleteComments}>
+            <Button variant="outline" onClick={handleDeleteComments} disabled={isProcessing}>
               <Trash2 className="mr-2 h-4 w-4" /> Delete Comments
             </Button>
-            <Button variant="outline" onClick={handleToOneLiner}>
+            <Button variant="outline" onClick={handleToOneLiner} disabled={isProcessing}>
               <Sparkles className="mr-2 h-4 w-4" /> To One Liner
             </Button>
-            <Button variant="outline" onClick={handleReverse}>
+            <Button variant="outline" onClick={handleReverse} disabled={isProcessing}>
               <ArrowLeftRight className="mr-2 h-4 w-4" /> Reverse
             </Button>
-            <Button variant="secondary" onClick={handleCopy}>
+            <Button variant="secondary" onClick={handleCopy} disabled={isProcessing || !outputCode}>
               <Copy className="mr-2 h-4 w-4" /> Copy
             </Button>
-            <Button variant="secondary" onClick={handleDownload}>
+            <Button variant="secondary" onClick={handleDownload} disabled={isProcessing || !outputCode}>
               <Download className="mr-2 h-4 w-4" /> Download
             </Button>
           </div>
@@ -167,7 +181,7 @@ export function LuaEditor() {
           <AlertDialogHeader>
             <AlertDialogTitle>Beautify Options</AlertDialogTitle>
             <AlertDialogDescription>
-              How should comments be handled during beautification? You can choose to either remove all comments or preserve them as they are.
+              How should comments be handled during beautification? The AI can either remove all comments or try to preserve them.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
