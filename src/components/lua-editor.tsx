@@ -42,6 +42,7 @@ export function LuaEditor() {
   const [inputCode, setInputCode] = useState<string>(initialCode);
   const [outputCode, setOutputCode] = useState<string>('');
   const [dialogOpen, setDialogOpen] = useState<boolean>(false);
+  const [oneLinerDialogOpen, setOneLinerDialogOpen] = useState<boolean>(false);
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
   const { toast } = useToast();
 
@@ -104,15 +105,15 @@ export function LuaEditor() {
     }
   };
 
-  const handleToOneLiner = () => {
-     try {
-      const result = lua.toOneLiner(inputCode);
-      setOutputCode(result);
-      toast({ title: 'Code converted to one line!', description: 'Multi-line code has been condensed.' });
-    } catch (e) {
-      const error = e instanceof Error ? e.message : 'An unknown error occurred';
-      toast({ title: 'An error occurred', description: error, variant: 'destructive' });
-    }
+  const handleToOneLiner = (commentOption: 'preserve' | 'delete') => {
+    try {
+     const result = lua.toOneLiner(inputCode, commentOption);
+     setOutputCode(result);
+     toast({ title: 'Code converted to one line!', description: 'Multi-line code has been condensed.' });
+   } catch (e) {
+     const error = e instanceof Error ? e.message : 'An unknown error occurred';
+     toast({ title: 'An error occurred', description: error, variant: 'destructive' });
+   }
   };
 
   const handleReverse = () => {
@@ -160,7 +161,7 @@ export function LuaEditor() {
             <Button variant="outline" onClick={handleDeleteComments} disabled={isProcessing}>
               <Trash2 className="mr-2 h-4 w-4" /> Delete Comments
             </Button>
-            <Button variant="outline" onClick={handleToOneLiner} disabled={isProcessing}>
+            <Button variant="outline" onClick={() => setOneLinerDialogOpen(true)} disabled={isProcessing}>
               <Sparkles className="mr-2 h-4 w-4" /> To One Liner
             </Button>
             <Button variant="outline" onClick={handleReverse} disabled={isProcessing}>
@@ -188,6 +189,22 @@ export function LuaEditor() {
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction onClick={() => handleBeautify('delete')} className="bg-destructive hover:bg-destructive/90">Delete comments</AlertDialogAction>
             <AlertDialogAction onClick={() => handleBeautify('preserve')} className="bg-accent hover:bg-accent/90">Preserve Comments</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={oneLinerDialogOpen} onOpenChange={setOneLinerDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>One-Liner Options</AlertDialogTitle>
+            <AlertDialogDescription>
+              How should comments be handled when converting to a single line? You can either remove all comments or preserve them.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={() => handleToOneLiner('delete')} className="bg-destructive hover:bg-destructive/90">Delete comments</AlertDialogAction>
+            <AlertDialogAction onClick={() => handleToOneLiner('preserve')} className="bg-accent hover:bg-accent/90">Preserve Comments</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

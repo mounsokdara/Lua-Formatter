@@ -15,17 +15,23 @@ export function deleteAllComments(code: string): string {
 
 /**
  * Converts multi-line Lua code into a single line.
- * It converts single-line comments to block comments to preserve them.
  * @param code The input Lua code.
+ * @param commentOption Whether to 'preserve' or 'delete' comments.
  * @returns Single-line code string.
  */
-export function toOneLiner(code: string): string {
-  // Convert single-line comments to block comments to preserve them.
-  // This is necessary because a single-line comment would comment out the rest of the code.
-  let oneLiner = code.replace(/--[ \t]*(?!\[(?:=|\[)?)(.*)/g, (match, content) => {
-      const trimmed = content.trim();
-      return trimmed ? ` --[[ ${trimmed} ]] ` : '';
-  });
+export function toOneLiner(code: string, commentOption: 'preserve' | 'delete'): string {
+  let oneLiner = code;
+  if (commentOption === 'delete') {
+    oneLiner = deleteAllComments(oneLiner);
+  } else {
+    // Preserve: Convert single-line comments to block comments to preserve them.
+    // This is necessary because a single-line comment would comment out the rest of the code.
+    oneLiner = oneLiner.replace(/--[ \t]*(?!\[(?:=|\[)?)(.*)/g, (match, content) => {
+        const trimmed = content.trim();
+        return trimmed ? ` --[[ ${trimmed} ]] ` : '';
+    });
+  }
+  
   // Replace newlines and tabs with a space, then collapse multiple spaces.
   oneLiner = oneLiner.replace(/[\r\n\t]+/g, ' ').replace(/\s{2,}/g, ' ').trim();
   return oneLiner;
