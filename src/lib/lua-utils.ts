@@ -45,3 +45,47 @@ export function toOneLiner(code: string, commentOption: 'preserve' | 'delete'): 
 export function reverseCode(code: string): string {
   return code.split('').reverse().join('');
 }
+
+/**
+ * Beautifies Lua code with basic indentation. Note: this is a simple formatter and may not be perfect.
+ * @param code The input Lua code string.
+ * @returns Formatted code.
+ */
+export function beautifyCode(code: string): string {
+  const lines = code.split('\n');
+  let result = '';
+  let indent = 0;
+  const indentUnit = '  ';
+
+  for (const rawLine of lines) {
+    const line = rawLine.trim();
+
+    if (!line) {
+      result += '\n';
+      continue;
+    }
+
+    if (
+      line.startsWith('end') ||
+      line.startsWith('else') ||
+      line.startsWith('elseif') ||
+      line.startsWith('until')
+    ) {
+      indent = Math.max(0, indent - 1);
+    }
+
+    result += indentUnit.repeat(indent) + line + '\n';
+    
+    if (
+      line.startsWith('function') ||
+      line.startsWith('if') ||
+      line.startsWith('for') ||
+      line.startsWith('while') ||
+      line.startsWith('repeat') ||
+      /\b(then|do)$/.test(line)
+    ) {
+        indent++;
+    }
+  }
+  return result.replace(/\n{2,}/g, '\n').trim();
+}
