@@ -1,4 +1,6 @@
 
+import { parse } from 'full-moon';
+
 /**
  * Removes all single-line and multi-line comments from Lua code.
  * @param code The input Lua code string.
@@ -68,59 +70,11 @@ export function reverseCode(code: string): string {
  * @returns Formatted code.
  */
 export function beautifyCode(code: string): string {
-  let processedCode = code;
-
-  // A simple heuristic to split one-liners into multiple lines for formatting.
-  // This is not a full parser and may not handle all cases perfectly.
-  if (!code.trim().includes('\n')) {
-    processedCode = code
-      // Add newlines for statements separated by semicolons
-      .replace(/;/g, ';\n')
-      // Add newlines after block starters
-      .replace(/\b(then|do)\b/g, '$1\n')
-      // Add newlines before block separators. This now handles `end)` and `end))`.
-      .replace(/\b(else|elseif|end|until)(?![a-zA-Z0-9_])/g, '\n$1')
-      // Clean up extra whitespace and newlines
-      .replace(/\s*\n\s*/g, '\n')
-      .trim();
+  try {
+    const ast = parse(code);
+    return JSON.stringify(ast, null, 2);
+  } catch (e) {
+    console.error('Error beautifying code:', e);
+    return code;
   }
-
-  const lines = processedCode.split('\n');
-  let result = '';
-  let indent = 0;
-  const indentUnit = '  ';
-
-  for (const rawLine of lines) {
-    const line = rawLine.trim();
-
-    if (!line) {
-      if (result && !result.endsWith('\n\n')) {
-        result += '\n';
-      }
-      continue;
-    }
-
-    if (
-      line.startsWith('end') ||
-      line.startsWith('else') ||
-      line.startsWith('elseif') ||
-      line.startsWith('until')
-    ) {
-      indent = Math.max(0, indent - 1);
-    }
-    
-    result += indentUnit.repeat(indent) + line + '\n';
-    
-    if (
-      line.startsWith('function') ||
-      line.startsWith('if') ||
-      line.startsWith('for') ||
-      line.startsWith('while') ||
-      line.startsWith('repeat') ||
-      /\b(then|do)$/.test(line)
-    ) {
-        indent++;
-    }
-  }
-  return result.replace(/\n{2,}/g, '\n').trim();
 }
