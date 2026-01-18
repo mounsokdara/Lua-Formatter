@@ -194,7 +194,7 @@ export function LuaEditor() {
             <Button variant="outline" onClick={handleBeautify}>
               <Brush className="mr-2 h-4 w-4" /> Beautify
             </Button>
-            <Button variant="outline" onClick={handleDeleteComments}>
+            <Button variant="outline" onClick={handleDeleteComments} disabled={!lua.hasComments(inputCode)}>
               <Trash2 className="mr-2 h-4 w-4" /> Delete Comments
             </Button>
             <Button variant="outline" onClick={handleToOneLinerClick}>
