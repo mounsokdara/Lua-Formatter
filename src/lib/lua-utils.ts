@@ -62,11 +62,29 @@ export function reverseCode(code: string): string {
 
 /**
  * Beautifies Lua code with basic indentation. Note: this is a simple formatter and may not be perfect.
+ * It can convert one-liners into multi-line formatted code.
  * @param code The input Lua code string.
  * @returns Formatted code.
  */
 export function beautifyCode(code: string): string {
-  const lines = code.split('\n');
+  let processedCode = code;
+
+  // If the code seems to be a one-liner, attempt to split it into multiple lines.
+  // This is a heuristic and may not perfectly format all edge cases, especially with keywords in strings.
+  if (!code.trim().includes('\n')) {
+    processedCode = code
+      // Add newlines for statements separated by semicolons
+      .replace(/;/g, ';\n')
+      // Add newlines after block starters
+      .replace(/\b(then|do)\b/g, '$1\n')
+      // Add newlines before keywords that start a new logical line
+      .replace(/\b(function|if|for|while|repeat|until|else|elseif|end|local)\b/g, '\n$1')
+      // Clean up extra whitespace and newlines
+      .replace(/\s*\n\s*/g, '\n')
+      .trim();
+  }
+
+  const lines = processedCode.split('\n');
   let result = '';
   let indent = 0;
   const indentUnit = '  ';
@@ -75,7 +93,9 @@ export function beautifyCode(code: string): string {
     const line = rawLine.trim();
 
     if (!line) {
-      result += '\n';
+      if (result && !result.endsWith('\n\n')) {
+        result += '\n';
+      }
       continue;
     }
 
@@ -87,7 +107,7 @@ export function beautifyCode(code: string): string {
     ) {
       indent = Math.max(0, indent - 1);
     }
-
+    
     result += indentUnit.repeat(indent) + line + '\n';
     
     if (
