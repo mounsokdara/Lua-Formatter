@@ -98,7 +98,7 @@ export function beautifyCode(code: string): string {
 
     // Split one-liners on the protected code, so strings aren't affected
     let processedCode = initialProtectedCode
-        .replace(/\)\s*(?!$)/g, ')\n')
+        .replace(/\)\s*([a-zA-Z_])/g, ')\n$1') // Add newline after a parenthesis if it's followed by a letter/underscore (likely a new statement)
         .replace(/\b(then)\b/g, 'then\n')
         .replace(/\b(else)\b/g, '\nelse\n')
         .replace(/\b(elseif)\b/g, '\nelseif ')
