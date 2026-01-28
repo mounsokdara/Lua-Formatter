@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent } from '@/components/ui/card';
-import { ArrowLeftRight, Copy, Download, Trash2, Sparkles, Brush, Trash } from 'lucide-react';
+import { ArrowLeftRight, Copy, Download, Trash2, Sparkles, Brush, Trash, Upload, ClipboardPaste } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import {
   AlertDialog,
@@ -17,6 +17,11 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import * as lua from '@/lib/lua-utils';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
+import { cn } from "@/lib/utils";
 
 const initialCode = `-- Example Lua Code
 -- A simple function to greet a user
@@ -42,6 +47,7 @@ export function LuaEditor() {
   const [outputCode, setOutputCode] = useState<string>('');
   const [oneLinerDialogOpen, setOneLinerDialogOpen] = useState<boolean>(false);
   const [stats, setStats] = useState<{ linesSaved: number; sizeSaved: number } | null>(null);
+  const [wrapLines, setWrapLines] = useState<boolean>(true);
   const { toast } = useToast();
 
   const formatBytes = (bytes: number, decimals = 2) => {
@@ -85,7 +91,6 @@ export function LuaEditor() {
           toast({ title: 'Failed to copy!', description: 'Could not copy text to clipboard.', variant: 'destructive' });
         });
     } else {
-      // Fallback for insecure contexts
       const textArea = document.createElement("textarea");
       textArea.value = outputCode;
       
@@ -189,21 +194,111 @@ export function LuaEditor() {
     toast({ title: 'Cleared!', description: 'Input and output fields have been cleared.' });
   }
 
+  const handlePasteFromClipboard = async () => {
+    if (!navigator.clipboard?.readText) {
+        toast({
+            title: 'Clipboard API not supported',
+            description: 'Your browser does not support this feature.',
+            variant: 'destructive',
+        });
+        return;
+    }
+    try {
+        const text = await navigator.clipboard.readText();
+        if (text) {
+            setInputCode(text);
+            toast({ title: 'Pasted from clipboard!', description: 'Code loaded from your clipboard.' });
+        } else {
+            toast({ title: 'Clipboard is empty!', variant: 'destructive' });
+        }
+    } catch (err) {
+        console.error('Failed to read clipboard contents: ', err);
+        toast({ title: 'Failed to paste', description: 'Could not read from clipboard. Check permissions.', variant: 'destructive' });
+    }
+  };
+
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) {
+        return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+        const text = e.target?.result as string;
+        setInputCode(text);
+        toast({ title: 'File loaded!', description: `${file.name} has been loaded.` });
+    };
+    reader.onerror = () => {
+         toast({
+            title: 'Error reading file',
+            description: 'Could not read the contents of the file.',
+            variant: 'destructive',
+        });
+    };
+    reader.readAsText(file);
+    
+    if (event.target) {
+      event.target.value = '';
+    }
+  };
+
+
   return (
     <>
       <Card className="w-full shadow-lg">
         <CardContent className="p-4 sm:p-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             <div>
-              <label htmlFor="input-code" className="text-sm font-medium mb-2 block text-muted-foreground">Input Code</label>
-              <Textarea
-                id="input-code"
-                value={inputCode}
-                onChange={(e) => setInputCode(e.target.value)}
-                placeholder="Paste your Lua code here..."
-                className="font-code h-96 min-h-[300px] lg:h-[500px] text-base border-primary/20 focus:border-primary"
-              />
+              <Tabs defaultValue="editor" className="w-full">
+                <TabsList className="grid w-full grid-cols-3 mb-2">
+                  <TabsTrigger value="editor">Editor</TabsTrigger>
+                  <TabsTrigger value="upload">Upload</TabsTrigger>
+                  <TabsTrigger value="clipboard">Clipboard</TabsTrigger>
+                </TabsList>
+                <TabsContent value="editor">
+                  <Textarea
+                    id="input-code"
+                    value={inputCode}
+                    onChange={(e) => setInputCode(e.target.value)}
+                    placeholder="Paste your Lua code here..."
+                    className={cn(
+                      "font-code h-96 min-h-[300px] lg:h-[500px] text-base border-primary/20 focus:border-primary",
+                      !wrapLines && "whitespace-pre overflow-x-auto"
+                    )}
+                  />
+                </TabsContent>
+                <TabsContent value="upload">
+                  <div className="relative flex flex-col items-center justify-center rounded-md border border-dashed h-96 min-h-[300px] lg:h-[500px] text-center p-4">
+                      <Upload className="mx-auto h-12 w-12 text-muted-foreground" />
+                      <h3 className="mt-4 text-lg font-semibold">Upload a file</h3>
+                      <p className="mb-4 mt-2 text-sm text-muted-foreground">
+                        Select a .lua or text file from your device.
+                      </p>
+                      <Input
+                        id="file-upload"
+                        type="file"
+                        className="relative block w-full max-w-xs cursor-pointer rounded-lg border bg-background text-sm focus:z-10"
+                        onChange={handleFileChange}
+                        accept=".lua,text/plain"
+                      />
+                  </div>
+                </TabsContent>
+                <TabsContent value="clipboard">
+                  <div className="flex flex-col items-center justify-center rounded-md border border-dashed h-96 min-h-[300px] lg:h-[500px] text-center p-4">
+                      <ClipboardPaste className="mx-auto h-12 w-12 text-muted-foreground" />
+                      <h3 className="mt-4 text-lg font-semibold">Load from Clipboard</h3>
+                      <p className="mb-4 mt-2 text-sm text-muted-foreground">
+                        Click the button to paste code from your clipboard.
+                      </p>
+                      <Button onClick={handlePasteFromClipboard}>
+                          <ClipboardPaste className="mr-2 h-4 w-4" /> Load from Clipboard
+                      </Button>
+                  </div>
+                </TabsContent>
+              </Tabs>
             </div>
+
             <div>
               <label htmlFor="output-code" className="text-sm font-medium mb-2 block text-muted-foreground">Output Code</label>
               <Textarea
@@ -211,7 +306,10 @@ export function LuaEditor() {
                 value={outputCode}
                 readOnly
                 placeholder={'Processed code will appear here...'}
-                className="font-code h-96 min-h-[300px] lg:h-[500px] bg-muted/30 text-base"
+                className={cn(
+                  "font-code h-96 min-h-[300px] lg:h-[500px] bg-muted/30 text-base",
+                   !wrapLines && "whitespace-pre overflow-x-auto"
+                )}
               />
               {stats && (outputCode || outputCode === '') && (
                 <div className="mt-2 text-sm text-muted-foreground flex justify-end gap-4 pr-2">
@@ -221,6 +319,12 @@ export function LuaEditor() {
               )}
             </div>
           </div>
+          
+          <div className="mt-4 flex items-center justify-end space-x-2">
+            <Checkbox id="wrap-lines" checked={wrapLines} onCheckedChange={(checked) => setWrapLines(Boolean(checked))} />
+            <Label htmlFor="wrap-lines">Wrap lines</Label>
+          </div>
+
           <div className="mt-6 flex flex-wrap gap-3 justify-center">
             <Button variant="outline" onClick={handleBeautify}>
               <Brush className="mr-2 h-4 w-4" /> Beautify
