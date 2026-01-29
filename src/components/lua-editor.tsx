@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent } from '@/components/ui/card';
-import { ArrowLeftRight, Copy, Download, Trash2, Sparkles, Brush, Trash, Upload, ClipboardPaste } from 'lucide-react';
+import { ArrowLeftRight, Copy, Download, Trash2, Sparkles, Brush, Trash, Upload, ClipboardPaste, Cog } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import {
   AlertDialog,
@@ -16,12 +16,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion";
 import * as lua from '@/lib/lua-utils';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
@@ -52,6 +46,7 @@ export function LuaEditor() {
   const [inputCode, setInputCode] = useState<string>(initialCode);
   const [outputCode, setOutputCode] = useState<string>('');
   const [oneLinerDialogOpen, setOneLinerDialogOpen] = useState<boolean>(false);
+  const [advancedDialogOpen, setAdvancedDialogOpen] = useState<boolean>(false);
   const [deleteOptions, setDeleteOptions] = useState({
     singleLine: true,
     multiLine: true,
@@ -357,6 +352,9 @@ export function LuaEditor() {
             <Button variant="outline" onClick={handleDeleteComments} disabled={!lua.hasComments(inputCode)}>
               <Trash2 className="mr-2 h-4 w-4" /> Delete Comments
             </Button>
+            <Button variant="outline" onClick={() => setAdvancedDialogOpen(true)}>
+              <Cog className="mr-2 h-4 w-4" /> Advanced Delete
+            </Button>
             <Button variant="outline" onClick={handleToOneLinerClick}>
               <Sparkles className="mr-2 h-4 w-4" /> To One Liner
             </Button>
@@ -373,93 +371,94 @@ export function LuaEditor() {
               <Trash className="mr-2 h-4 w-4" /> Clear
             </Button>
           </div>
-
-          <Accordion type="single" collapsible className="w-full mt-4 border rounded-lg">
-            <AccordionItem value="advanced-delete">
-                <AccordionTrigger className="px-4 py-3">Advanced Feature</AccordionTrigger>
-                <AccordionContent className="p-4 border-t">
-                  <p className="text-sm text-muted-foreground mb-4">
-                    Selectively remove comments based on patterns.
-                  </p>
-                  <Tabs defaultValue="standard" className="w-full">
-                    <TabsList className="grid w-full grid-cols-2">
-                      <TabsTrigger value="standard">Standard Comments</TabsTrigger>
-                      <TabsTrigger value="custom">Custom Markers</TabsTrigger>
-                    </TabsList>
-                    <TabsContent value="standard" className="mt-4">
-                        <Card>
-                            <CardContent className="pt-6">
-                                <div className="space-y-4">
-                                    <div className="flex items-center space-x-2">
-                                        <Checkbox 
-                                          id="singleLine" 
-                                          checked={deleteOptions.singleLine} 
-                                          onCheckedChange={(checked) => setDeleteOptions(prev => ({...prev, singleLine: !!checked}))}
-                                        />
-                                        <Label htmlFor="singleLine" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-                                            Delete single-line comments (e.g. -- comment)
-                                        </Label>
-                                    </div>
-                                    <div className="flex items-center space-x-2">
-                                        <Checkbox 
-                                          id="multiLine" 
-                                          checked={deleteOptions.multiLine}
-                                          onCheckedChange={(checked) => setDeleteOptions(prev => ({...prev, multiLine: !!checked}))}
-                                        />
-                                        <Label htmlFor="multiLine" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-                                            Delete multi-line block comments (e.g. --[[...]])
-                                        </Label>
-                                    </div>
-                                </div>
-                            </CardContent>
-                        </Card>
-                    </TabsContent>
-                    <TabsContent value="custom" className="mt-4">
-                       <Card>
-                            <CardContent className="pt-6">
-                               <div className="grid gap-4">
-                                  <div className="space-y-2">
-                                    <Label htmlFor="customSingle">Custom single-line prefix</Label>
-                                    <Input 
-                                      id="customSingle" 
-                                      placeholder="e.g. #" 
-                                      value={deleteOptions.customSingle}
-                                      onChange={(e) => setDeleteOptions(prev => ({...prev, customSingle: e.target.value}))}
-                                    />
-                                  </div>
-                                  <div className="grid grid-cols-2 gap-4">
-                                    <div className="space-y-2">
-                                      <Label htmlFor="customMultiStart">Block start marker</Label>
-                                      <Input 
-                                        id="customMultiStart" 
-                                        placeholder="e.g. /*"
-                                        value={deleteOptions.customMultiStart}
-                                        onChange={(e) => setDeleteOptions(prev => ({...prev, customMultiStart: e.target.value}))}
-                                      />
-                                    </div>
-                                    <div className="space-y-2">
-                                      <Label htmlFor="customMultiEnd">Block end marker</Label>
-                                      <Input 
-                                        id="customMultiEnd" 
-                                        placeholder="e.g. */" 
-                                        value={deleteOptions.customMultiEnd}
-                                        onChange={(e) => setDeleteOptions(prev => ({...prev, customMultiEnd: e.target.value}))}
-                                      />
-                                    </div>
-                                  </div>
-                               </div>
-                            </CardContent>
-                        </Card>
-                    </TabsContent>
-                  </Tabs>
-                   <div className="flex justify-end mt-4">
-                      <Button onClick={handleCustomDelete}>Apply & Delete</Button>
-                   </div>
-                </AccordionContent>
-            </AccordionItem>
-          </Accordion>
         </CardContent>
       </Card>
+
+      <AlertDialog open={advancedDialogOpen} onOpenChange={setAdvancedDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Advanced Comment Deletion</AlertDialogTitle>
+            <AlertDialogDescription>
+              Selectively remove comments based on patterns.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <Tabs defaultValue="standard" className="w-full">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="standard">Standard Comments</TabsTrigger>
+              <TabsTrigger value="custom">Custom Markers</TabsTrigger>
+            </TabsList>
+            <TabsContent value="standard" className="mt-4">
+                <Card>
+                    <CardContent className="pt-6">
+                        <div className="space-y-4">
+                            <div className="flex items-center space-x-2">
+                                <Checkbox 
+                                  id="singleLine" 
+                                  checked={deleteOptions.singleLine} 
+                                  onCheckedChange={(checked) => setDeleteOptions(prev => ({...prev, singleLine: !!checked}))}
+                                />
+                                <Label htmlFor="singleLine" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                                    Delete single-line comments (e.g. -- comment)
+                                </Label>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                                <Checkbox 
+                                  id="multiLine" 
+                                  checked={deleteOptions.multiLine}
+                                  onCheckedChange={(checked) => setDeleteOptions(prev => ({...prev, multiLine: !!checked}))}
+                                />
+                                <Label htmlFor="multiLine" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                                    Delete multi-line block comments (e.g. --[[...]])
+                                </Label>
+                            </div>
+                        </div>
+                    </CardContent>
+                </Card>
+            </TabsContent>
+            <TabsContent value="custom" className="mt-4">
+               <Card>
+                    <CardContent className="pt-6">
+                       <div className="grid gap-4">
+                          <div className="space-y-2">
+                            <Label htmlFor="customSingle">Custom single-line prefix</Label>
+                            <Input 
+                              id="customSingle" 
+                              placeholder="e.g. #" 
+                              value={deleteOptions.customSingle}
+                              onChange={(e) => setDeleteOptions(prev => ({...prev, customSingle: e.target.value}))}
+                            />
+                          </div>
+                          <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                              <Label htmlFor="customMultiStart">Block start marker</Label>
+                              <Input 
+                                id="customMultiStart" 
+                                placeholder="e.g. /*"
+                                value={deleteOptions.customMultiStart}
+                                onChange={(e) => setDeleteOptions(prev => ({...prev, customMultiStart: e.target.value}))}
+                              />
+                            </div>
+                            <div className="space-y-2">
+                              <Label htmlFor="customMultiEnd">Block end marker</Label>
+                              <Input 
+                                id="customMultiEnd" 
+                                placeholder="e.g. */" 
+                                value={deleteOptions.customMultiEnd}
+                                onChange={(e) => setDeleteOptions(prev => ({...prev, customMultiEnd: e.target.value}))}
+                              />
+                            </div>
+                          </div>
+                       </div>
+                    </CardContent>
+                </Card>
+            </TabsContent>
+          </Tabs>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleCustomDelete}>Apply & Delete</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <AlertDialog open={oneLinerDialogOpen} onOpenChange={setOneLinerDialogOpen}>
         <AlertDialogContent>
