@@ -252,3 +252,32 @@ export function extractAllComments(code: string): { line: number, content: strin
 
     return comments;
 }
+
+/**
+ * Deletes a comment from the code by its sequential index.
+ * @param code The input Lua code.
+ * @param indexToDelete The zero-based index of the comment to delete.
+ * @returns The code with the specified comment removed.
+ */
+export function deleteCommentByIndex(code: string, indexToDelete: number): string {
+    const commentRegex = /--\[(=*)\[[\s\S]*?\]\1\]|--[^\n]*/g;
+    
+    const matches = [];
+    let match;
+    // Find all comment matches first
+    while ((match = commentRegex.exec(code)) !== null) {
+        matches.push({
+            startIndex: match.index,
+            endIndex: match.index + match[0].length
+        });
+    }
+
+    // If the index is valid, reconstruct the string without the comment
+    if (indexToDelete >= 0 && indexToDelete < matches.length) {
+        const matchToDelete = matches[indexToDelete];
+        return code.substring(0, matchToDelete.startIndex) + code.substring(matchToDelete.endIndex);
+    }
+    
+    // Return original code if index is out of bounds
+    return code;
+}

@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { ArrowLeftRight, Copy, Download, Trash2, Sparkles, Brush, Trash, Upload, ClipboardPaste, Search, Undo, Redo, Settings } from 'lucide-react';
+import { ArrowLeftRight, Copy, Download, Trash2, Sparkles, Brush, Trash, Upload, ClipboardPaste, Search, Undo, Redo } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import {
   AlertDialog,
@@ -16,13 +16,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import * as lua from '@/lib/lua-utils';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
@@ -30,6 +23,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import { ScrollArea } from './ui/scroll-area';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from './ui/accordion';
 
 const initialCode = `-- Example Lua Code
 -- A simple function to greet a user
@@ -59,7 +53,6 @@ export function LuaEditor() {
   const [inputCode, setInputCode] = useState<string>(initialCode);
   const [outputCode, setOutputCode] = useState<string>('');
   const [oneLinerDialogOpen, setOneLinerDialogOpen] = useState<boolean>(false);
-  const [advancedToolsDialogOpen, setAdvancedToolsDialogOpen] = useState<boolean>(false);
   const [deleteOptions, setDeleteOptions] = useState({
     singleLine: true,
     multiLine: true,
@@ -202,7 +195,6 @@ export function LuaEditor() {
       const result = lua.deleteCustomComments(inputCode, deleteOptions);
       setOutputCode(result);
       calculateStats(inputCode, result);
-      setAdvancedToolsDialogOpen(false);
       toast({ title: 'Comments deleted!', description: 'Custom comments have been removed.' });
     } catch (e) {
       const error = e instanceof Error ? e.message : 'An unknown error occurred';
@@ -314,6 +306,23 @@ export function LuaEditor() {
     const comments = lua.extractAllComments(inputCode);
     setFoundComments(comments);
     toast({ title: `Found ${comments.length} comments.`});
+  };
+
+  const handleDeleteSingleComment = (comment: FoundComment) => {
+    const originalIndex = foundComments.findIndex(c => c.line === comment.line && c.content === comment.content);
+
+    if (originalIndex === -1) {
+         toast({ title: 'Could not find comment to delete.', variant: 'destructive'});
+        return;
+    }
+
+    const newCode = lua.deleteCommentByIndex(inputCode, originalIndex);
+    updateInputCode(newCode);
+    
+    const refreshedComments = lua.extractAllComments(newCode);
+    setFoundComments(refreshedComments);
+
+    toast({ title: 'Comment deleted.' });
   };
 
   const filteredComments = foundComments.filter(comment => 
@@ -439,57 +448,14 @@ export function LuaEditor() {
         </CardContent>
       </Card>
       
-      <Card className="mt-4 w-full shadow-lg">
+      <Card className="mt-6 w-full shadow-lg">
         <CardHeader>
-          <CardTitle>Advanced Feature</CardTitle>
-          <CardDescription>
-            Advanced options for comment inspection and deletion.
-          </CardDescription>
+            <CardTitle>Advanced Tools</CardTitle>
+            <CardDescription>
+            Inspect or selectively remove comments from your code.
+            </CardDescription>
         </CardHeader>
         <CardContent>
-            <Button variant="outline" onClick={() => setAdvancedToolsDialogOpen(true)}>
-              <Settings className="mr-2 h-4 w-4" /> Open Advanced Tools
-            </Button>
-        </CardContent>
-      </Card>
-
-      <AlertDialog open={oneLinerDialogOpen} onOpenChange={setOneLinerDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>One-Liner Options</AlertDialogTitle>
-            <AlertDialogDescription>
-              How should comments be handled when converting to a single line? You can either remove all comments or preserve them.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={() => handleToOneLiner('delete')} className="bg-destructive hover:bg-destructive/90">Delete comments</AlertDialogAction>
-            <AlertDialogAction onClick={() => handleToOneLiner('preserve')} className="bg-accent hover:bg-accent/90">Preserve Comments</AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      <Dialog open={advancedToolsDialogOpen} onOpenChange={setAdvancedToolsDialogOpen}>
-        <DialogContent className="max-w-3xl">
-          <DialogHeader>
-            <div className="flex justify-between items-center">
-              <DialogTitle>Advanced Tools</DialogTitle>
-              <div className="flex gap-2">
-                <Button variant="outline" size="icon" className="h-8 w-8" onClick={handleUndo} disabled={historyIndex === 0}>
-                    <Undo className="h-4 w-4" />
-                    <span className="sr-only">Undo</span>
-                </Button>
-                <Button variant="outline" size="icon" className="h-8 w-8" onClick={handleRedo} disabled={historyIndex >= history.length - 1}>
-                    <Redo className="h-4 w-4" />
-                    <span className="sr-only">Redo</span>
-                </Button>
-              </div>
-            </div>
-            <DialogDescription>
-              Inspect or selectively remove comments from your code.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="pt-4">
             <Tabs defaultValue="custom-delete" className="w-full">
               <TabsList className="grid w-full grid-cols-2">
                 <TabsTrigger value="custom-delete">Custom Delete</TabsTrigger>
@@ -588,9 +554,15 @@ export function LuaEditor() {
                               <div className="p-4 text-sm">
                                 {filteredComments.length > 0 ? (
                                   filteredComments.map((comment, index) => (
-                                    <div key={index} className="border-b p-2">
-                                      <span className="font-semibold text-muted-foreground">Line {comment.line}:</span>
-                                      <p className="font-code whitespace-pre-wrap">{comment.content}</p>
+                                    <div key={index} className="border-b p-2 flex items-center justify-between">
+                                        <div>
+                                            <span className="font-semibold text-muted-foreground">Line {comment.line}:</span>
+                                            <p className="font-code whitespace-pre-wrap">{comment.content}</p>
+                                        </div>
+                                        <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => handleDeleteSingleComment(comment)}>
+                                            <Trash2 className="h-4 w-4" />
+                                            <span className="sr-only">Delete comment</span>
+                                        </Button>
                                     </div>
                                   ))
                                 ) : (
@@ -605,9 +577,25 @@ export function LuaEditor() {
                   </Card>
               </TabsContent>
             </Tabs>
-          </div>
-        </DialogContent>
-      </Dialog>
+        </CardContent>
+      </Card>
+
+
+      <AlertDialog open={oneLinerDialogOpen} onOpenChange={setOneLinerDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>One-Liner Options</AlertDialogTitle>
+            <AlertDialogDescription>
+              How should comments be handled when converting to a single line? You can either remove all comments or preserve them.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={() => handleToOneLiner('delete')} className="bg-destructive hover:bg-destructive/90">Delete comments</AlertDialogAction>
+            <AlertDialogAction onClick={() => handleToOneLiner('preserve')} className="bg-accent hover:bg-accent/90">Preserve Comments</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }
