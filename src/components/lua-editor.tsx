@@ -436,9 +436,6 @@ export function LuaEditor() {
             <Button variant="outline" onClick={handleDeleteComments} disabled={!lua.hasComments(inputCode)}>
               <Trash2 className="mr-2 h-4 w-4" /> Delete Comments
             </Button>
-            <Button variant="outline" onClick={() => setAdvancedDialogOpen(true)}>
-              <Wrench className="mr-2 h-4 w-4" /> Advanced Tools
-            </Button>
             <Button variant="outline" onClick={handleToOneLinerClick}>
               <Sparkles className="mr-2 h-4 w-4" /> To One Liner
             </Button>
@@ -455,6 +452,14 @@ export function LuaEditor() {
               <Trash className="mr-2 h-4 w-4" /> Clear
             </Button>
           </div>
+        </CardContent>
+      </Card>
+      
+      <Card className="mt-4">
+        <CardContent className="p-6 flex items-center justify-center">
+          <Button variant="outline" onClick={() => setAdvancedDialogOpen(true)}>
+            <Wrench className="mr-2 h-4 w-4" /> Advanced Tools
+          </Button>
         </CardContent>
       </Card>
 
