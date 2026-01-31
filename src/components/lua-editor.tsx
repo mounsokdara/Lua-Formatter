@@ -200,8 +200,11 @@ export function LuaEditor() {
   const handleCustomDelete = () => {
     try {
       const result = lua.deleteCustomComments(inputCode, deleteOptions);
-      setOutputCode(result);
       calculateStats(inputCode, result);
+      updateInputCode(result);
+      setOutputCode(result);
+      const refreshedComments = lua.extractAllComments(result);
+      setFoundComments(refreshedComments);
       toast({ title: 'Comments deleted!', description: 'Custom comments have been removed.' });
     } catch (e) {
       const error = e instanceof Error ? e.message : 'An unknown error occurred';
@@ -324,7 +327,9 @@ export function LuaEditor() {
     }
 
     const newCode = lua.deleteCommentByIndex(inputCode, originalIndex);
+    calculateStats(inputCode, newCode);
     updateInputCode(newCode);
+    setOutputCode(newCode);
     
     const refreshedComments = lua.extractAllComments(newCode);
     setFoundComments(refreshedComments);
