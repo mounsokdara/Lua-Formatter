@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { ArrowLeftRight, Copy, Download, Trash2, Sparkles, Brush, Trash, Upload, ClipboardPaste, Search, Undo, Redo } from 'lucide-react';
+import { ArrowLeftRight, Copy, Download, Trash2, Sparkles, Brush, Trash, Upload, ClipboardPaste, Search, Undo, Redo, Settings } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import {
   AlertDialog,
@@ -16,6 +16,13 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import * as lua from '@/lib/lua-utils';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
@@ -52,6 +59,7 @@ export function LuaEditor() {
   const [inputCode, setInputCode] = useState<string>(initialCode);
   const [outputCode, setOutputCode] = useState<string>('');
   const [oneLinerDialogOpen, setOneLinerDialogOpen] = useState<boolean>(false);
+  const [advancedToolsDialogOpen, setAdvancedToolsDialogOpen] = useState<boolean>(false);
   const [deleteOptions, setDeleteOptions] = useState({
     singleLine: true,
     multiLine: true,
@@ -194,6 +202,7 @@ export function LuaEditor() {
       const result = lua.deleteCustomComments(inputCode, deleteOptions);
       setOutputCode(result);
       calculateStats(inputCode, result);
+      setAdvancedToolsDialogOpen(false);
       toast({ title: 'Comments deleted!', description: 'Custom comments have been removed.' });
     } catch (e) {
       const error = e instanceof Error ? e.message : 'An unknown error occurred';
@@ -405,6 +414,9 @@ export function LuaEditor() {
             <Button variant="outline" onClick={handleReverse}>
               <ArrowLeftRight className="mr-2 h-4 w-4" /> Reverse
             </Button>
+             <Button variant="outline" onClick={() => setAdvancedToolsDialogOpen(true)}>
+              <Settings className="mr-2 h-4 w-4" /> Advanced Tools
+            </Button>
             <Button variant="secondary" onClick={handleCopy} disabled={!outputCode}>
               <Copy className="mr-2 h-4 w-4" /> Copy
             </Button>
@@ -424,132 +436,6 @@ export function LuaEditor() {
         </CardContent>
       </Card>
       
-      <Card className="mt-6 w-full shadow-lg">
-        <CardHeader>
-          <CardTitle>Advanced Tools</CardTitle>
-          <CardDescription>
-            Inspect or selectively remove comments from your code.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Tabs defaultValue="custom-delete" className="w-full">
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="custom-delete">Custom Delete</TabsTrigger>
-              <TabsTrigger value="inspector">Comment Inspector</TabsTrigger>
-            </TabsList>
-            <TabsContent value="custom-delete" className="mt-4">
-                <Card>
-                    <CardHeader>
-                        <CardTitle className="text-lg">Delete by Type</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="space-y-4">
-                            <div className="flex items-center space-x-2">
-                                <Checkbox 
-                                  id="singleLine" 
-                                  checked={deleteOptions.singleLine} 
-                                  onCheckedChange={(checked) => setDeleteOptions(prev => ({...prev, singleLine: !!checked}))}
-                                />
-                                <Label htmlFor="singleLine" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-                                    Delete single-line comments (e.g. -- comment)
-                                </Label>
-                            </div>
-                            <div className="flex items-center space-x-2">
-                                <Checkbox 
-                                  id="multiLine" 
-                                  checked={deleteOptions.multiLine}
-                                  onCheckedChange={(checked) => setDeleteOptions(prev => ({...prev, multiLine: !!checked}))}
-                                />
-                                <Label htmlFor="multiLine" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-                                    Delete multi-line block comments (e.g. --[[...]])
-                                </Label>
-                            </div>
-                        </div>
-                    </CardContent>
-                </Card>
-                <Card className="mt-4">
-                    <CardHeader>
-                        <CardTitle className="text-lg">Delete by Custom Marker</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                       <div className="grid gap-4">
-                          <div className="space-y-2">
-                            <Label htmlFor="customSingle">Custom single-line prefix</Label>
-                            <Input 
-                              id="customSingle" 
-                              placeholder="e.g. #" 
-                              value={deleteOptions.customSingle}
-                              onChange={(e) => setDeleteOptions(prev => ({...prev, customSingle: e.target.value}))}
-                            />
-                          </div>
-                          <div className="grid grid-cols-2 gap-4">
-                            <div className="space-y-2">
-                              <Label htmlFor="customMultiStart">Block start marker</Label>
-                              <Input 
-                                id="customMultiStart" 
-                                placeholder="e.g. /*"
-                                value={deleteOptions.customMultiStart}
-                                onChange={(e) => setDeleteOptions(prev => ({...prev, customMultiStart: e.target.value}))}
-                              />
-                            </div>
-                            <div className="space-y-2">
-                              <Label htmlFor="customMultiEnd">Block end marker</Label>
-                              <Input 
-                                id="customMultiEnd" 
-                                placeholder="e.g. */" 
-                                value={deleteOptions.customMultiEnd}
-                                onChange={(e) => setDeleteOptions(prev => ({...prev, customMultiEnd: e.target.value}))}
-                              />
-                            </div>
-                          </div>
-                       </div>
-                    </CardContent>
-                </Card>
-                <div className="mt-4 flex justify-end">
-                    <Button onClick={handleCustomDelete}>
-                    <Trash2 className="mr-2 h-4 w-4" /> Apply Custom Delete
-                    </Button>
-                </div>
-            </TabsContent>
-            <TabsContent value="inspector" className="mt-4">
-               <Card>
-                    <CardContent className="pt-6">
-                      <div className="flex flex-col space-y-4">
-                          <div className="flex space-x-2">
-                            <Input 
-                              placeholder="Search comments..."
-                              value={commentSearch}
-                              onChange={(e) => setCommentSearch(e.target.value)}
-                            />
-                            <Button onClick={handleFindComments} variant="outline">
-                              <Search className="mr-2 h-4 w-4" />
-                              Find Comments
-                            </Button>
-                          </div>
-                          <ScrollArea className="h-72 w-full rounded-md border">
-                            <div className="p-4 text-sm">
-                              {filteredComments.length > 0 ? (
-                                filteredComments.map((comment, index) => (
-                                  <div key={index} className="border-b p-2">
-                                    <span className="font-semibold text-muted-foreground">Line {comment.line}:</span>
-                                    <p className="font-code whitespace-pre-wrap">{comment.content}</p>
-                                  </div>
-                                ))
-                              ) : (
-                                <p className="text-muted-foreground text-center p-4">
-                                  No comments found, or clear your search.
-                                </p>
-                              )}
-                            </div>
-                          </ScrollArea>
-                      </div>
-                    </CardContent>
-                </Card>
-            </TabsContent>
-          </Tabs>
-        </CardContent>
-      </Card>
-
       <AlertDialog open={oneLinerDialogOpen} onOpenChange={setOneLinerDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -565,6 +451,136 @@ export function LuaEditor() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <Dialog open={advancedToolsDialogOpen} onOpenChange={setAdvancedToolsDialogOpen}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>Advanced Tools</DialogTitle>
+            <DialogDescription>
+              Inspect or selectively remove comments from your code.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="pt-4">
+            <Tabs defaultValue="custom-delete" className="w-full">
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="custom-delete">Custom Delete</TabsTrigger>
+                <TabsTrigger value="inspector">Comment Inspector</TabsTrigger>
+              </TabsList>
+              <TabsContent value="custom-delete" className="mt-4">
+                  <Card>
+                      <CardHeader>
+                          <CardTitle className="text-lg">Delete by Type</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                          <div className="space-y-4">
+                              <div className="flex items-center space-x-2">
+                                  <Checkbox 
+                                    id="singleLine" 
+                                    checked={deleteOptions.singleLine} 
+                                    onCheckedChange={(checked) => setDeleteOptions(prev => ({...prev, singleLine: !!checked}))}
+                                  />
+                                  <Label htmlFor="singleLine" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                                      Delete single-line comments (e.g. -- comment)
+                                  </Label>
+                              </div>
+                              <div className="flex items-center space-x-2">
+                                  <Checkbox 
+                                    id="multiLine" 
+                                    checked={deleteOptions.multiLine}
+                                    onCheckedChange={(checked) => setDeleteOptions(prev => ({...prev, multiLine: !!checked}))}
+                                  />
+                                  <Label htmlFor="multiLine" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                                      Delete multi-line block comments (e.g. --[[...]])
+                                  </Label>
+                              </div>
+                          </div>
+                      </CardContent>
+                  </Card>
+                  <Card className="mt-4">
+                      <CardHeader>
+                          <CardTitle className="text-lg">Delete by Custom Marker</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="grid gap-4">
+                            <div className="space-y-2">
+                              <Label htmlFor="customSingle">Custom single-line prefix</Label>
+                              <Input 
+                                id="customSingle" 
+                                placeholder="e.g. #" 
+                                value={deleteOptions.customSingle}
+                                onChange={(e) => setDeleteOptions(prev => ({...prev, customSingle: e.target.value}))}
+                              />
+                            </div>
+                            <div className="grid grid-cols-2 gap-4">
+                              <div className="space-y-2">
+                                <Label htmlFor="customMultiStart">Block start marker</Label>
+                                <Input 
+                                  id="customMultiStart" 
+                                  placeholder="e.g. /*"
+                                  value={deleteOptions.customMultiStart}
+                                  onChange={(e) => setDeleteOptions(prev => ({...prev, customMultiStart: e.target.value}))}
+                                />
+                              </div>
+                              <div className="space-y-2">
+                                <Label htmlFor="customMultiEnd">Block end marker</Label>
+                                <Input 
+                                  id="customMultiEnd" 
+                                  placeholder="e.g. */" 
+                                  value={deleteOptions.customMultiEnd}
+                                  onChange={(e) => setDeleteOptions(prev => ({...prev, customMultiEnd: e.target.value}))}
+                                />
+                              </div>
+                            </div>
+                        </div>
+                      </CardContent>
+                  </Card>
+                  <div className="mt-4 flex justify-end">
+                      <Button onClick={handleCustomDelete}>
+                      <Trash2 className="mr-2 h-4 w-4" /> Apply Custom Delete
+                      </Button>
+                  </div>
+              </TabsContent>
+              <TabsContent value="inspector" className="mt-4">
+                <Card>
+                      <CardContent className="pt-6">
+                        <div className="flex flex-col space-y-4">
+                            <div className="flex space-x-2">
+                              <Input 
+                                placeholder="Search comments..."
+                                value={commentSearch}
+                                onChange={(e) => setCommentSearch(e.target.value)}
+                              />
+                              <Button onClick={handleFindComments} variant="outline">
+                                <Search className="mr-2 h-4 w-4" />
+                                Find Comments
+                              </Button>
+                            </div>
+                            <ScrollArea className="h-72 w-full rounded-md border">
+                              <div className="p-4 text-sm">
+                                {filteredComments.length > 0 ? (
+                                  filteredComments.map((comment, index) => (
+                                    <div key={index} className="border-b p-2">
+                                      <span className="font-semibold text-muted-foreground">Line {comment.line}:</span>
+                                      <p className="font-code whitespace-pre-wrap">{comment.content}</p>
+                                    </div>
+                                  ))
+                                ) : (
+                                  <p className="text-muted-foreground text-center p-4">
+                                    No comments found, or clear your search.
+                                  </p>
+                                )}
+                              </div>
+                            </ScrollArea>
+                        </div>
+                      </CardContent>
+                  </Card>
+              </TabsContent>
+            </Tabs>
+          </div>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }
+
+    
