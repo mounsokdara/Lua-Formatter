@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { ArrowLeftRight, Copy, Download, Trash2, Sparkles, Brush, Trash, Upload, ClipboardPaste } from 'lucide-react';
+import { ArrowLeftRight, Copy, Download, Trash2, Sparkles, Brush, Trash, Upload, ClipboardPaste, Search, Undo, Redo } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import {
   AlertDialog,
@@ -22,6 +22,7 @@ import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
+import { ScrollArea } from './ui/scroll-area';
 
 const initialCode = `-- Example Lua Code
 -- A simple function to greet a user
@@ -42,6 +43,11 @@ end
 greet("World")
 `;
 
+type FoundComment = {
+  line: number;
+  content: string;
+};
+
 export function LuaEditor() {
   const [inputCode, setInputCode] = useState<string>(initialCode);
   const [outputCode, setOutputCode] = useState<string>('');
@@ -53,10 +59,42 @@ export function LuaEditor() {
     customMultiStart: '',
     customMultiEnd: '',
   });
+  
+  const [history, setHistory] = useState<string[]>([initialCode]);
+  const [historyIndex, setHistoryIndex] = useState(0);
 
   const [stats, setStats] = useState<{ linesSaved: number; sizeSaved: number } | null>(null);
   const [wrapLines, setWrapLines] = useState<boolean>(true);
   const { toast } = useToast();
+  
+  const [foundComments, setFoundComments] = useState<FoundComment[]>([]);
+  const [commentSearch, setCommentSearch] = useState('');
+
+  const updateInputCode = (newCode: string, fromHistory = false) => {
+    setInputCode(newCode);
+    if (!fromHistory) {
+      const newHistory = history.slice(0, historyIndex + 1);
+      newHistory.push(newCode);
+      setHistory(newHistory);
+      setHistoryIndex(newHistory.length - 1);
+    }
+  };
+  
+  const handleUndo = () => {
+    if (historyIndex > 0) {
+      const newIndex = historyIndex - 1;
+      setHistoryIndex(newIndex);
+      updateInputCode(history[newIndex], true);
+    }
+  };
+
+  const handleRedo = () => {
+    if (historyIndex < history.length - 1) {
+      const newIndex = historyIndex + 1;
+      setHistoryIndex(newIndex);
+      updateInputCode(history[newIndex], true);
+    }
+  };
 
   const formatBytes = (bytes: number, decimals = 2) => {
     if (bytes === 0) return '0 Bytes';
@@ -208,7 +246,7 @@ export function LuaEditor() {
   };
 
   const handleClear = () => {
-    setInputCode('');
+    updateInputCode('');
     setOutputCode('');
     setStats(null);
     toast({ title: 'Cleared!', description: 'Input and output fields have been cleared.' });
@@ -226,7 +264,7 @@ export function LuaEditor() {
     try {
         const text = await navigator.clipboard.readText();
         if (text) {
-            setInputCode(text);
+            updateInputCode(text);
             toast({ title: 'Pasted from clipboard!', description: 'Code loaded from your clipboard.' });
         } else {
             toast({ title: 'Clipboard is empty!', variant: 'destructive' });
@@ -246,7 +284,7 @@ export function LuaEditor() {
     const reader = new FileReader();
     reader.onload = (e) => {
         const text = e.target?.result as string;
-        setInputCode(text);
+        updateInputCode(text);
         toast({ title: 'File loaded!', description: `${file.name} has been loaded.` });
     };
     reader.onerror = () => {
@@ -262,6 +300,16 @@ export function LuaEditor() {
       event.target.value = '';
     }
   };
+
+  const handleFindComments = () => {
+    const comments = lua.extractAllComments(inputCode);
+    setFoundComments(comments);
+    toast({ title: `Found ${comments.length} comments.`});
+  };
+
+  const filteredComments = foundComments.filter(comment => 
+    comment.content.toLowerCase().includes(commentSearch.toLowerCase())
+  );
 
   return (
     <>
@@ -279,7 +327,7 @@ export function LuaEditor() {
                   <Textarea
                     id="input-code"
                     value={inputCode}
-                    onChange={(e) => setInputCode(e.target.value)}
+                    onChange={(e) => updateInputCode(e.target.value)}
                     placeholder="Paste your Lua code here..."
                     className={cn(
                       "font-code h-96 min-h-[300px] lg:h-[500px] text-base border-primary/20 focus:border-primary",
@@ -363,29 +411,38 @@ export function LuaEditor() {
             <Button variant="secondary" onClick={handleDownload} disabled={!outputCode}>
               <Download className="mr-2 h-4 w-4" /> Download
             </Button>
+            <Button variant="outline" onClick={handleUndo} disabled={historyIndex === 0}>
+                <Undo className="mr-2 h-4 w-4" /> Undo
+            </Button>
+            <Button variant="outline" onClick={handleRedo} disabled={historyIndex >= history.length - 1}>
+                <Redo className="mr-2 h-4 w-4" /> Redo
+            </Button>
             <Button variant="destructive" onClick={handleClear}>
               <Trash className="mr-2 h-4 w-4" /> Clear
             </Button>
           </div>
         </CardContent>
       </Card>
-
+      
       <Card className="mt-6 w-full shadow-lg">
         <CardHeader>
-          <CardTitle>Advanced Feature</CardTitle>
+          <CardTitle>Advanced Tools</CardTitle>
           <CardDescription>
-            Selectively remove comments based on patterns.
+            Inspect or selectively remove comments from your code.
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <Tabs defaultValue="standard" className="w-full">
+          <Tabs defaultValue="custom-delete" className="w-full">
             <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="standard">Standard Comments</TabsTrigger>
-              <TabsTrigger value="custom">Custom Markers</TabsTrigger>
+              <TabsTrigger value="custom-delete">Custom Delete</TabsTrigger>
+              <TabsTrigger value="inspector">Comment Inspector</TabsTrigger>
             </TabsList>
-            <TabsContent value="standard" className="mt-4">
+            <TabsContent value="custom-delete" className="mt-4">
                 <Card>
-                    <CardContent className="pt-6">
+                    <CardHeader>
+                        <CardTitle className="text-lg">Delete by Type</CardTitle>
+                    </CardHeader>
+                    <CardContent>
                         <div className="space-y-4">
                             <div className="flex items-center space-x-2">
                                 <Checkbox 
@@ -410,10 +467,11 @@ export function LuaEditor() {
                         </div>
                     </CardContent>
                 </Card>
-            </TabsContent>
-            <TabsContent value="custom" className="mt-4">
-               <Card>
-                    <CardContent className="pt-6">
+                <Card className="mt-4">
+                    <CardHeader>
+                        <CardTitle className="text-lg">Delete by Custom Marker</CardTitle>
+                    </CardHeader>
+                    <CardContent>
                        <div className="grid gap-4">
                           <div className="space-y-2">
                             <Label htmlFor="customSingle">Custom single-line prefix</Label>
@@ -447,13 +505,48 @@ export function LuaEditor() {
                        </div>
                     </CardContent>
                 </Card>
+                <div className="mt-4 flex justify-end">
+                    <Button onClick={handleCustomDelete}>
+                    <Trash2 className="mr-2 h-4 w-4" /> Apply Custom Delete
+                    </Button>
+                </div>
+            </TabsContent>
+            <TabsContent value="inspector" className="mt-4">
+               <Card>
+                    <CardContent className="pt-6">
+                      <div className="flex flex-col space-y-4">
+                          <div className="flex space-x-2">
+                            <Input 
+                              placeholder="Search comments..."
+                              value={commentSearch}
+                              onChange={(e) => setCommentSearch(e.target.value)}
+                            />
+                            <Button onClick={handleFindComments} variant="outline">
+                              <Search className="mr-2 h-4 w-4" />
+                              Find Comments
+                            </Button>
+                          </div>
+                          <ScrollArea className="h-72 w-full rounded-md border">
+                            <div className="p-4 text-sm">
+                              {filteredComments.length > 0 ? (
+                                filteredComments.map((comment, index) => (
+                                  <div key={index} className="border-b p-2">
+                                    <span className="font-semibold text-muted-foreground">Line {comment.line}:</span>
+                                    <p className="font-code whitespace-pre-wrap">{comment.content}</p>
+                                  </div>
+                                ))
+                              ) : (
+                                <p className="text-muted-foreground text-center p-4">
+                                  No comments found, or clear your search.
+                                </p>
+                              )}
+                            </div>
+                          </ScrollArea>
+                      </div>
+                    </CardContent>
+                </Card>
             </TabsContent>
           </Tabs>
-          <div className="mt-4 flex justify-end">
-            <Button onClick={handleCustomDelete}>
-              <Trash2 className="mr-2 h-4 w-4" /> Apply Custom Delete
-            </Button>
-          </div>
         </CardContent>
       </Card>
 

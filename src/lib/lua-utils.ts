@@ -230,3 +230,25 @@ export function beautifyCode(code: string): string {
 
     return restoreStrings(finalProtectedCode, strings);
 }
+
+/**
+ * Extracts all comments from a Lua code string for inspection.
+ * Note: This function is for display/inspection and may find false positives within complex string literals.
+ * The deletion functions are safer.
+ * @param code The input Lua code.
+ * @returns An array of objects containing the line number and content of each comment.
+ */
+export function extractAllComments(code: string): { line: number, content: string }[] {
+    const comments: { line: number, content: string }[] = [];
+    // This regex finds both multi-line block comments and single-line comments.
+    const commentRegex = /--\[(=*)\[[\s\S]*?\]\1\]|--[^\n]*/g;
+    
+    let match;
+    while ((match = commentRegex.exec(code)) !== null) {
+      // Calculate the line number where the comment starts.
+      const line = (code.substring(0, match.index).match(/\n/g) || []).length + 1;
+      comments.push({ line, content: match[0] });
+    }
+
+    return comments;
+}
