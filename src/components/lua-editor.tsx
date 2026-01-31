@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { ArrowLeftRight, Copy, Download, Trash2, Sparkles, Brush, Trash, Upload, ClipboardPaste, Search, Undo, Redo } from 'lucide-react';
+import { ArrowLeftRight, Copy, Download, Trash2, Sparkles, Brush, Trash, Upload, ClipboardPaste, Search, Undo, Redo, Settings } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import {
   AlertDialog,
@@ -16,6 +16,13 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import * as lua from '@/lib/lua-utils';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
@@ -53,6 +60,7 @@ export function LuaEditor() {
   const [inputCode, setInputCode] = useState<string>(initialCode);
   const [outputCode, setOutputCode] = useState<string>('');
   const [oneLinerDialogOpen, setOneLinerDialogOpen] = useState<boolean>(false);
+  const [advancedDialogOpen, setAdvancedDialogOpen] = useState<boolean>(false);
   const [deleteOptions, setDeleteOptions] = useState({
     singleLine: true,
     multiLine: true,
@@ -429,6 +437,9 @@ export function LuaEditor() {
             <Button variant="outline" onClick={handleDeleteComments} disabled={!lua.hasComments(inputCode)}>
               <Trash2 className="mr-2 h-4 w-4" /> Delete Comments
             </Button>
+            <Button variant="outline" onClick={() => setAdvancedDialogOpen(true)}>
+              <Settings className="mr-2 h-4 w-4" /> Advanced Tools
+            </Button>
             <Button variant="outline" onClick={handleToOneLinerClick}>
               <Sparkles className="mr-2 h-4 w-4" /> To One Liner
             </Button>
@@ -447,16 +458,26 @@ export function LuaEditor() {
           </div>
         </CardContent>
       </Card>
-      
-      <Card className="mt-6 w-full shadow-lg">
-        <CardHeader>
-            <CardTitle>Advanced Tools</CardTitle>
-            <CardDescription>
+
+      <Dialog open={advancedDialogOpen} onOpenChange={setAdvancedDialogOpen}>
+        <DialogContent className="sm:max-w-2xl">
+          <div className="absolute top-4 right-16 z-10 flex gap-2">
+            <Button variant="outline" size="icon" className="h-8 w-8" onClick={handleUndo} disabled={historyIndex === 0}>
+                <Undo className="h-4 w-4" />
+                <span className="sr-only">Undo</span>
+            </Button>
+            <Button variant="outline" size="icon" className="h-8 w-8" onClick={handleRedo} disabled={historyIndex >= history.length - 1}>
+                <Redo className="h-4 w-4" />
+                <span className="sr-only">Redo</span>
+            </Button>
+          </div>
+          <DialogHeader>
+            <DialogTitle>Advanced Tools</DialogTitle>
+            <DialogDescription>
             Inspect or selectively remove comments from your code.
-            </CardDescription>
-        </CardHeader>
-        <CardContent>
-            <Tabs defaultValue="custom-delete" className="w-full">
+            </DialogDescription>
+          </DialogHeader>
+          <Tabs defaultValue="custom-delete" className="w-full pt-4">
               <TabsList className="grid w-full grid-cols-2">
                 <TabsTrigger value="custom-delete">Custom Delete</TabsTrigger>
                 <TabsTrigger value="inspector">Comment Inspector</TabsTrigger>
@@ -577,8 +598,8 @@ export function LuaEditor() {
                   </Card>
               </TabsContent>
             </Tabs>
-        </CardContent>
-      </Card>
+        </DialogContent>
+      </Dialog>
 
 
       <AlertDialog open={oneLinerDialogOpen} onOpenChange={setOneLinerDialogOpen}>
@@ -599,3 +620,5 @@ export function LuaEditor() {
     </>
   );
 }
+
+    
