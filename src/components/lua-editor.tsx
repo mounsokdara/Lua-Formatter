@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { ArrowLeftRight, Copy, Download, Trash2, Sparkles, Brush, Trash, Upload, ClipboardPaste, Search, Undo, Redo, Wrench } from 'lucide-react';
+import { ArrowLeftRight, Copy, Download, Trash2, Sparkles, Trash, Upload, ClipboardPaste, Search, Undo, Redo, Wrench } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import {
   AlertDialog,
@@ -244,18 +244,6 @@ export function LuaEditor() {
     }
   };
 
-  const handleBeautify = () => {
-    try {
-      const result = lua.beautifyCode(inputCode);
-      setOutputCode(result);
-      calculateStats(inputCode, result);
-      toast({ title: 'Code beautified!', description: 'The code has been formatted.' });
-    } catch (e) {
-      const error = e instanceof Error ? e.message : 'An unknown error occurred';
-      toast({ title: 'An error occurred', description: error, variant: 'destructive' });
-    }
-  };
-
   const handleClear = () => {
     updateInputCode('');
     setOutputCode('');
@@ -435,9 +423,6 @@ export function LuaEditor() {
           </div>
 
           <div className="mt-6 flex flex-wrap gap-3 justify-center">
-            <Button variant="outline" onClick={handleBeautify}>
-              <Brush className="mr-2 h-4 w-4" /> Beautify
-            </Button>
             <Button variant="outline" onClick={handleDeleteComments} disabled={!lua.hasComments(inputCode)}>
               <Trash2 className="mr-2 h-4 w-4" /> Delete Comments
             </Button>

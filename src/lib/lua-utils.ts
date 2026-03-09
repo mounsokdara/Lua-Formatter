@@ -176,61 +176,6 @@ export function reverseCode(code: string): string {
   return code.split('').reverse().join('');
 }
 
-
-/**
- * A much safer, smarter beautifier for Lua code using string protection.
- * @param code The input Lua code string.
- * @returns Formatted code.
- */
-export function beautifyCode(code: string): string {
-    const { protectedCode: initialProtectedCode, strings } = protectStrings(code);
-
-    // Add newlines after parentheses only if they are followed by a word character (likely a new statement)
-    let processedCode = initialProtectedCode
-        .replace(/\)\s*(\w)/g, ')\n$1') 
-        .replace(/\b(then)\b/g, 'then\n')
-        .replace(/\b(else)\b/g, '\nelse\n')
-        .replace(/\b(elseif)\b/g, '\nelseif ')
-        .replace(/(\bend\b|end\))/g, '\n$1') // handle "end" and "end)"
-        .replace(/;\s*/g, ';\n');
-
-
-    const lines = processedCode.split('\n');
-    let beautifiedCode = '';
-    let indentLevel = 0;
-    const indentChar = '    ';
-
-    const increaseIndentKeywords = ['function', 'if', 'while', 'for', 'repeat', 'do'];
-    const decreaseIndentKeywords = ['end', 'until'];
-    const midBlockKeywords = ['else', 'elseif'];
-
-    lines.forEach(line => {
-        const trimmedLine = line.trim();
-
-        if (trimmedLine.length === 0) return;
-
-        const firstWord = trimmedLine.split(/\s+|(?=[^\w\s])/)[0];
-        
-        if (decreaseIndentKeywords.includes(firstWord) || midBlockKeywords.includes(firstWord) || trimmedLine.startsWith('end)')) {
-            indentLevel = Math.max(0, indentLevel - 1);
-        }
-
-        beautifiedCode += indentChar.repeat(indentLevel) + trimmedLine + '\n';
-        
-        const lastWord = trimmedLine.split(/\s+/).pop() || '';
-
-        if (increaseIndentKeywords.some(keyword => trimmedLine.startsWith(keyword)) || lastWord === 'then' || lastWord === 'do') {
-            if (!(trimmedLine.startsWith('do') && lastWord === 'end')) {
-                indentLevel++;
-            }
-        }
-    });
-
-    const finalProtectedCode = beautifiedCode.replace(/\n\s*\n/g, '\n').trim();
-
-    return restoreStrings(finalProtectedCode, strings);
-}
-
 /**
  * Extracts all comments from a Lua code string for inspection.
  * Note: This function is for display/inspection and may find false positives within complex string literals.
